@@ -34,7 +34,7 @@ class App {
     form.addEventListener('submit', this._newWorkout.bind(this));
     inputType.addEventListener('change', this._toggleElevationField);
     document.addEventListener('keydown', this._escapeForm.bind(this));
-    containerWorkouts.addEventListener('click', this._moveToPopup.bind(this));
+    // containerWorkouts.addEventListener('click', this._moveToPopup.bind(this));
 
     btnReset.addEventListener('click', this.reset);
 
@@ -50,41 +50,40 @@ class App {
     // prettier-ignore
     containerWorkouts.addEventListener('click', this._getUtilityButtonsPressed.bind(this)
     );
-    console.log(this.#markers);
   }
 
   _getUtilityButtonsPressed(e) {
     if (!e) return;
     this._deleteWorkout(e);
+    this._moveToPopup(e);
   }
 
   _deleteWorkout(e) {
     const btn = e.target.closest('.workout_close_btn');
     const workoutEl = e.target.closest('.workout');
 
-    if (!btn) return;
-
-    //get index of current element
-    let index;
-    const updateWorkouts = this.#workouts.filter((workout, i) => {
-      index = i;
-      return workout._id !== workoutEl.dataset.id;
-    });
-    this.#workouts = updateWorkouts;
-    //delete it from workouts array
-    this.#workouts.splice(index);
+    if (!btn || !workoutEl) return;
 
     //remove it from rendering
     workoutEl.remove();
 
+    //get index of current element
+    let index;
+
+    this.#workouts.find((workout, i) => {
+      if (workout._id === workoutEl.dataset.id) index = i;
+    });
+
+    //delete it from workouts array
+    this.#workouts.splice(index, 1);
+
     //delete it form markers
-    console.log(this.#markers[index]);
     this.#markers[index].remove();
-    this.#markers.splice(index);
+    this.#markers.splice(index, 1);
 
-    //delete it from local memory
-    localStorage.setItem('workouts', JSON.stringify(this.#workouts));
-
+    //delete from the memory
+    localStorage.removeItem('workouts');
+    this._setLocalStorage();
     if (this.#workouts.length === 0) localStorage.removeItem('workouts');
   }
 
@@ -288,11 +287,11 @@ class App {
 
   _moveToPopup(e) {
     const workoutEl = e.target.closest('.workout');
-    if (!workoutEl) return;
-
     const workout = this.#workouts.find(
       work => work._id === workoutEl.dataset.id
     );
+    if (!workoutEl || !workout) return;
+
     this.#map.setView(workout.coords, this.#mapZoomLevel, {
       animate: true,
       pan: {
