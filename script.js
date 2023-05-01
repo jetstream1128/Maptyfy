@@ -19,6 +19,7 @@ class App {
   #mapZoomLevel = 13;
   #mapEvent;
   #workouts = [];
+  #markers = [];
 
   constructor() {
     //get user position
@@ -27,6 +28,8 @@ class App {
     //get data from local storage
     this._getLocalStorage();
 
+    // //render markers
+    // this._renderMarkersOnMap(this);
     //Attach event handlers
     form.addEventListener('submit', this._newWorkout.bind(this));
     inputType.addEventListener('change', this._toggleElevationField);
@@ -36,14 +39,53 @@ class App {
     btnReset.addEventListener('click', this.reset);
 
     // prettier-ignore
-    btnSubmit.addEventListener('mouseover',this._changeFormShadow.bind(this, '#00914e'));
+    btnSubmit.addEventListener('mouseover', this._changeFormShadow.bind(this, '#00914e'));
     // prettier-ignore
-    btnSubmit.addEventListener('mouseleave',this._changeFormShadow.bind(this, 'none'));
+    btnSubmit.addEventListener('mouseleave', this._changeFormShadow.bind(this, 'none'));
     // prettier-ignore
-    btnClose.addEventListener('mouseover',this._changeFormShadow.bind(this, '#bb4f46'));
+    btnClose.addEventListener('mouseover', this._changeFormShadow.bind(this, '#bb4f46'));
     // prettier-ignore
-    btnClose.addEventListener('mouseleave',this._changeFormShadow.bind(this, 'none'));
+    btnClose.addEventListener('mouseleave', this._changeFormShadow.bind(this, 'none'));
     btnClose.addEventListener('click', this._hideForm);
+    // prettier-ignore
+    containerWorkouts.addEventListener('click', this._getUtilityButtonsPressed.bind(this)
+    );
+    console.log(this.#markers);
+  }
+
+  _getUtilityButtonsPressed(e) {
+    if (!e) return;
+    this._deleteWorkout(e);
+  }
+
+  _deleteWorkout(e) {
+    const btn = e.target.closest('.workout_close_btn');
+    const workoutEl = e.target.closest('.workout');
+
+    if (!btn) return;
+
+    //get index of current element
+    let index;
+    const updateWorkouts = this.#workouts.filter((workout, i) => {
+      index = i;
+      return workout._id !== workoutEl.dataset.id;
+    });
+    this.#workouts = updateWorkouts;
+    //delete it from workouts array
+    this.#workouts.splice(index);
+
+    //remove it from rendering
+    workoutEl.remove();
+
+    //delete it form markers
+    console.log(this.#markers[index]);
+    this.#markers[index].remove();
+    this.#markers.splice(index);
+
+    //delete it from local memory
+    localStorage.setItem('workouts', JSON.stringify(this.#workouts));
+
+    if (this.#workouts.length === 0) localStorage.removeItem('workouts');
   }
 
   _changeFormShadow(color) {
@@ -167,9 +209,6 @@ class App {
 
     //store data
     this._setLocalStorage();
-
-    //attach button
-    this._getBntsCloseWorkpout();
   }
 
   _renderWorkoutMarker(workout) {
@@ -179,7 +218,8 @@ class App {
       iconAnchor: [25, 80],
       popupAnchor: [-3, -76],
     });
-    L.marker(workout.coords, { icon: myIcon })
+
+    const layer = L.marker(workout.coords, { icon: myIcon })
       .addTo(this.#map)
       .bindPopup(
         L.popup({
@@ -194,13 +234,16 @@ class App {
         `${workout.type === 'running' ? '🏃‍♂️' : '🚴🏻'} ${workout.description}`
       )
       .openPopup();
+
+    //push marker inside the marker array
+    this.#markers.push(layer);
   }
 
   _renderWorkout(workout) {
     let html = `
-      <li class="workout workout--${workout.type}" data-id="${workout.id}">
+      <li class="workout workout--${workout.type}" data-id="${workout._id}">
           <h2 class="workout__title">${workout.description}</h2>
-          <button class="btn workout_close_btn">X</button>
+          <div class="workout_close_btn"></div>
           <div class="workout__details">
             <span class="workout__icon">${
               workout.type === 'running' ? '🏃‍♂️' : '🚴🏻'
@@ -248,7 +291,7 @@ class App {
     if (!workoutEl) return;
 
     const workout = this.#workouts.find(
-      work => work.id === workoutEl.dataset.id
+      work => work._id === workoutEl.dataset.id
     );
     this.#map.setView(workout.coords, this.#mapZoomLevel, {
       animate: true,
@@ -262,6 +305,7 @@ class App {
 
   _setLocalStorage() {
     localStorage.setItem('workouts', JSON.stringify(this.#workouts));
+    // localStorage.setItem('markers', JSON.stringify(this.#markers));
   }
 
   _getLocalStorage() {
@@ -285,7 +329,7 @@ const app = new App();
 
 class Workout {
   date = new Date();
-  id = String(
+  _id = String(
     Date.now() +
       Math.floor(Math.random() * 100) +
       Math.floor(Math.random() * 100)

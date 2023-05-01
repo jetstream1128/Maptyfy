@@ -90,8 +90,17 @@ button {
 
 .workout_close_btn {
   position: absolute;
-  top: 0;
-  right: 0;
+  top: 5px;
+  right: 10px;
+  padding: 1.5rem 1rem;
+  background: no-repeat center url(/can_closed.png);
+  background-size: 80%;
+  transition: all 0.3s;
+}
+
+.workout_close_btn:hover {
+  background: no-repeat center url(/can_opened.png);
+  background-size: 80%;
 }
 
 .workout--running {
