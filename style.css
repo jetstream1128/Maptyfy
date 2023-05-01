@@ -49,6 +49,25 @@ button {
   background: none;
 }
 
+/* Disable text selection for all elements */
+* {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Enable text selection for inputs and textareas */
+input,
+textarea {
+  -webkit-touch-callout: default;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
 /* SIDEBAR */
 .sidebar {
   flex-basis: 50rem;
