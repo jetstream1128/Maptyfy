@@ -10,16 +10,44 @@ const inputDuration = document.querySelector('.form__input--duration');
 const inputCadence = document.querySelector('.form__input--cadence');
 const inputElevation = document.querySelector('.form__input--elevation');
 
+const btnReset = document.querySelector('.reset_btn');
+const btnSubmit = document.querySelector('.form__btn-submit');
+const btnClose = document.querySelector('.form__btn-close');
+
 class App {
   #map;
+  #mapZoomLevel = 13;
   #mapEvent;
   #workouts = [];
 
   constructor() {
+    //get user position
     this._getPosition();
+
+    //get data from local storage
+    this._getLocalStorage();
+
+    //Attach event handlers
     form.addEventListener('submit', this._newWorkout.bind(this));
     inputType.addEventListener('change', this._toggleElevationField);
-    window.addEventListener('keydown', this._escapeForm.bind(this));
+    document.addEventListener('keydown', this._escapeForm.bind(this));
+    containerWorkouts.addEventListener('click', this._moveToPopup.bind(this));
+
+    btnReset.addEventListener('click', this.reset);
+
+    // prettier-ignore
+    btnSubmit.addEventListener('mouseover',this._changeFormShadow.bind(this, '#00914e'));
+    // prettier-ignore
+    btnSubmit.addEventListener('mouseleave',this._changeFormShadow.bind(this, 'none'));
+    // prettier-ignore
+    btnClose.addEventListener('mouseover',this._changeFormShadow.bind(this, '#bb4f46'));
+    // prettier-ignore
+    btnClose.addEventListener('mouseleave',this._changeFormShadow.bind(this, 'none'));
+    btnClose.addEventListener('click', this._hideForm);
+  }
+
+  _changeFormShadow(color) {
+    form.style.boxShadow = color === 'none' ? color : `0px 2px ${color}`;
   }
 
   _getPosition() {
@@ -37,8 +65,7 @@ class App {
     const { longitude } = position.coords;
     const coords = [latitude, longitude];
 
-    console.log(this);
-    this.#map = L.map('map').setView(coords, 15);
+    this.#map = L.map('map').setView(coords, this.#mapZoomLevel);
 
     L.tileLayer(
       'https://{s}.google.com/vt/lyrs=m&hl=x-local&src=app&x={x}&y={y}&z={z}&s=Galile',
@@ -52,6 +79,10 @@ class App {
 
     //Handling clicks on map
     this.#map.on('click', this._showForm.bind(this));
+
+    this.#workouts.forEach(work => {
+      this._renderWorkoutMarker(work);
+    });
   }
 
   _showForm(mapE) {
@@ -68,7 +99,7 @@ class App {
         '';
     form.style.display = 'none';
     form.classList.add('hidden');
-    setTimeout(() => (form.style.display = 'grid'), 1000);
+    setTimeout(() => (form.style.display = 'grid'), 200);
   }
 
   _escapeForm(e) {
@@ -94,6 +125,7 @@ class App {
     const distance = Number(inputDistance.value);
     const duration = Number(inputDuration.value);
     const { lat, lng } = this.#mapEvent.latlng;
+
     let workout;
 
     // if workout is set to running, create running object
@@ -123,7 +155,6 @@ class App {
     }
     //add new object to workout array
     this.#workouts.push(workout);
-    console.log(workout);
 
     // render workout on a map as marker
     this._renderWorkoutMarker(workout);
@@ -133,10 +164,22 @@ class App {
 
     //hide form
     this._hideForm();
+
+    //store data
+    this._setLocalStorage();
+
+    //attach button
+    this._getBntsCloseWorkpout();
   }
 
   _renderWorkoutMarker(workout) {
-    L.marker(workout.coords)
+    const myIcon = L.icon({
+      iconUrl: `marker_${workout.type}.png`,
+      iconSize: [44, 65],
+      iconAnchor: [25, 80],
+      popupAnchor: [-3, -76],
+    });
+    L.marker(workout.coords, { icon: myIcon })
       .addTo(this.#map)
       .bindPopup(
         L.popup({
@@ -154,10 +197,10 @@ class App {
   }
 
   _renderWorkout(workout) {
-    console.log(workout);
     let html = `
-    <li class="workout workout--${workout.type}" data-id="${workout.id}">
+      <li class="workout workout--${workout.type}" data-id="${workout.id}">
           <h2 class="workout__title">${workout.description}</h2>
+          <button class="btn workout_close_btn">X</button>
           <div class="workout__details">
             <span class="workout__icon">${
               workout.type === 'running' ? '🏃‍♂️' : '🚴🏻'
@@ -199,6 +242,43 @@ class App {
 
     form.insertAdjacentHTML('afterend', html);
   }
+
+  _moveToPopup(e) {
+    const workoutEl = e.target.closest('.workout');
+    if (!workoutEl) return;
+
+    const workout = this.#workouts.find(
+      work => work.id === workoutEl.dataset.id
+    );
+    this.#map.setView(workout.coords, this.#mapZoomLevel, {
+      animate: true,
+      pan: {
+        duration: 1,
+      },
+    });
+
+    // workout.click();
+  }
+
+  _setLocalStorage() {
+    localStorage.setItem('workouts', JSON.stringify(this.#workouts));
+  }
+
+  _getLocalStorage() {
+    const data = JSON.parse(localStorage.getItem('workouts'));
+
+    if (!data) return;
+
+    this.#workouts = data;
+    this.#workouts.forEach(work => {
+      this._renderWorkout(work);
+    });
+  }
+
+  reset() {
+    localStorage.removeItem('workouts');
+    location.reload();
+  }
 }
 
 const app = new App();
@@ -210,6 +290,7 @@ class Workout {
       Math.floor(Math.random() * 100) +
       Math.floor(Math.random() * 100)
   ).slice(-10);
+  clicks = 0;
 
   constructor(coords, distance, duration) {
     this.coords = coords; //[lat, lon]
@@ -224,6 +305,10 @@ class Workout {
     this.description = `${this.type[0].toUpperCase()}${this.type.slice(1)} on ${
       months[this.date.getMonth()]
     } ${this.date.getDate()}`;
+  }
+
+  click() {
+    this.clicks++;
   }
 }
 
