@@ -109,7 +109,8 @@ class App {
     this.#map = L.map('map').setView(coords, this.#mapZoomLevel);
 
     L.tileLayer(
-      'https://{s}.google.com/vt/lyrs=m&hl=x-local&src=app&x={x}&y={y}&z={z}&s=Galile',
+      // 'https://{s}.google.com/vt/lyrs=m&hl=x-local&src=app&x={x}&y={y}&z={z}&s=Galile',
+      'http://{s}.google.com/vt/lyrs=p&hl=en&x={x}&y={y}&z={z} ',
       {
         maxZoom: 20,
         subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
