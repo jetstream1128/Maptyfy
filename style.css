@@ -75,17 +75,43 @@ button {
   width: 0;
 }
 
+.workout-wrapper {
+  /* padding: 1.5rem 1.25rem; */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.workout-content {
+  display: grid;
+  padding: 1.5rem 1.25rem;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 0.75rem 1.5rem;
+}
+
 .workout {
   position: relative;
   background-color: var(--color-dark--2);
   border-radius: 5px;
-  padding: 1.5rem 2.25rem;
   margin-bottom: 1.75rem;
   cursor: pointer;
+  transition: all 0.5s;
+}
 
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
-  gap: 0.75rem 1.5rem;
+.swipe-and-gone {
+  transform: translateX(500px);
+}
+
+.numberId {
+  /* align-items: center; */
+  text-align: center;
+  width: 15%;
+  padding: 3rem 1rem;
+  color: #fff;
+  font-size: 2.8rem;
+  font-weight: 800;
+  border-radius: 5px 0 0 5px;
+  background-color: #ffb545;
 }
 
 .workout_close_btn {
@@ -104,10 +130,10 @@ button {
 }
 
 .workout--running {
-  border-left: 5px solid var(--color-brand--2);
+  background-color: var(--color-brand--2);
 }
 .workout--cycling {
-  border-left: 5px solid var(--color-brand--1);
+  background-color: var(--color-brand--1);
 }
 
 .workout__title {

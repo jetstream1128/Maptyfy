@@ -16,7 +16,7 @@ const btnClose = document.querySelector('.form__btn-close');
 
 class App {
   #map;
-  #mapZoomLevel = 13;
+  #mapZoomLevel = 14;
   #mapEvent;
   #workouts = [];
   #markers = [];
@@ -28,28 +28,17 @@ class App {
     //get data from local storage
     this._getLocalStorage();
 
-    // //render markers
-    // this._renderMarkersOnMap(this);
     //Attach event handlers
     form.addEventListener('submit', this._newWorkout.bind(this));
     inputType.addEventListener('change', this._toggleElevationField);
     document.addEventListener('keydown', this._escapeForm.bind(this));
+    btnClose.addEventListener('click', this._hideForm);
+    btnReset.addEventListener('click', this.reset);
+    // prettier-ignore
+    containerWorkouts.addEventListener('click',this._getUtilityButtonsPressed.bind(this));
     // containerWorkouts.addEventListener('click', this._moveToPopup.bind(this));
 
-    btnReset.addEventListener('click', this.reset);
-
-    // prettier-ignore
-    btnSubmit.addEventListener('mouseover', this._changeFormShadow.bind(this, '#00914e'));
-    // prettier-ignore
-    btnSubmit.addEventListener('mouseleave', this._changeFormShadow.bind(this, 'none'));
-    // prettier-ignore
-    btnClose.addEventListener('mouseover', this._changeFormShadow.bind(this, '#bb4f46'));
-    // prettier-ignore
-    btnClose.addEventListener('mouseleave', this._changeFormShadow.bind(this, 'none'));
-    btnClose.addEventListener('click', this._hideForm);
-    // prettier-ignore
-    containerWorkouts.addEventListener('click', this._getUtilityButtonsPressed.bind(this)
-    );
+    this._decorationEvents();
   }
 
   _getUtilityButtonsPressed(e) {
@@ -58,33 +47,74 @@ class App {
     this._moveToPopup(e);
   }
 
+  _refreshWorkoutsIds() {
+    const idsWorkout = document.querySelectorAll('.numberId');
+
+    this.#workouts.forEach((workout, i) => {
+      workout._numberId = i + 1;
+    });
+
+    const idsWorkoutArray = Array.from(idsWorkout);
+    idsWorkoutArray
+      .reverse()
+      .forEach((el, i) => (el.textContent = this.#workouts[i]._numberId));
+  }
+
+  _refreshMarkerIds() {
+    const idsPopup = document.querySelectorAll('.leaflet-popup-content');
+    if (!idsPopup) return;
+    const idsPopupArray = Array.from(idsPopup);
+
+    idsPopupArray.forEach((el, i) => {
+      el.textContent = `#${i + 1} ${el.textContent.slice(2)}`;
+    });
+  }
+
+  _decorationEvents(e) {
+    // prettier-ignore
+    btnSubmit.addEventListener('mouseover', this._changeFormShadow.bind(this, '#00914e'));
+    // prettier-ignore
+    btnSubmit.addEventListener('mouseleave', this._changeFormShadow.bind(this, 'none'));
+    // prettier-ignore
+    btnClose.addEventListener('mouseover', this._changeFormShadow.bind(this, '#bb4f46'));
+    // prettier-ignore
+    btnClose.addEventListener('mouseleave', this._changeFormShadow.bind(this, 'none'));
+  }
+
   _deleteWorkout(e) {
     const btn = e.target.closest('.workout_close_btn');
     const workoutEl = e.target.closest('.workout');
 
     if (!btn || !workoutEl) return;
-
     //remove it from rendering
-    workoutEl.remove();
+    workoutEl.classList.add('swipe-and-gone');
+    setTimeout(() => {
+      workoutEl.remove();
+      //get index of current element
+      let index;
 
-    //get index of current element
-    let index;
+      this.#workouts.find((workout, i) => {
+        if (workout._id === workoutEl.dataset.id) index = i;
+      });
 
-    this.#workouts.find((workout, i) => {
-      if (workout._id === workoutEl.dataset.id) index = i;
-    });
+      //delete it from workouts array
+      this.#workouts.splice(index, 1);
 
-    //delete it from workouts array
-    this.#workouts.splice(index, 1);
+      //delete it form markers
+      this.#markers[index].remove();
+      this.#markers.splice(index, 1);
 
-    //delete it form markers
-    this.#markers[index].remove();
-    this.#markers.splice(index, 1);
+      //delete from the memory
+      localStorage.removeItem('workouts');
+      this._setLocalStorage();
+      if (this.#workouts.length === 0) localStorage.removeItem('workouts');
 
-    //delete from the memory
-    localStorage.removeItem('workouts');
-    this._setLocalStorage();
-    if (this.#workouts.length === 0) localStorage.removeItem('workouts');
+      //refresh marker ids on the map and list
+      setTimeout(() => {
+        this._refreshWorkoutsIds();
+        this._refreshMarkerIds();
+      }, 200);
+    }, 200);
   }
 
   _changeFormShadow(color) {
@@ -139,7 +169,7 @@ class App {
       inputCadence.value =
       inputElevation.value =
         '';
-    form.style.display = 'none';
+    // form.style.display = 'none';
     form.classList.add('hidden');
     setTimeout(() => (form.style.display = 'grid'), 200);
   }
@@ -195,8 +225,10 @@ class App {
 
       workout = new Cycling([lat, lng], distance, duration, elevation);
     }
+
     //add new object to workout array
     this.#workouts.push(workout);
+    this._refreshWorkoutsIds();
 
     // render workout on a map as marker
     this._renderWorkoutMarker(workout);
@@ -231,7 +263,9 @@ class App {
         })
       )
       .setPopupContent(
-        `${workout.type === 'running' ? '🏃‍♂️' : '🚴🏻'} ${workout.description}`
+        `#${workout._numberId} ${workout.type === 'running' ? '🏃‍♂️' : '🚴🏻'} ${
+          workout.description
+        }`
       )
       .openPopup();
 
@@ -241,7 +275,10 @@ class App {
 
   _renderWorkout(workout) {
     let html = `
-      <li class="workout workout--${workout.type}" data-id="${workout._id}">
+      <li class="workout" data-id="${workout._id}">
+    <div class="workout-wrapper">
+      <div class="numberId workout--${workout.type}">${workout._numberId}</div>
+        <div class="workout-content">
           <h2 class="workout__title">${workout.description}</h2>
           <div class="workout_close_btn"></div>
           <div class="workout__details">
@@ -281,7 +318,10 @@ class App {
             <span class="workout__icon">⛰</span>
             <span class="workout__value">${workout.elevationGain}</span>
             <span class="workout__unit">m</span>
-          </div>`;
+            </div>
+            </div>
+          </div>
+        </li>`;
 
     form.insertAdjacentHTML('afterend', html);
   }
@@ -320,6 +360,7 @@ class App {
     this.#workouts.forEach(work => {
       this._renderWorkout(work);
     });
+    this._refreshWorkoutsIds();
   }
 
   reset() {
@@ -332,6 +373,7 @@ const app = new App();
 
 class Workout {
   date = new Date();
+  _numberId = 0;
   _id = String(
     Date.now() +
       Math.floor(Math.random() * 100) +
